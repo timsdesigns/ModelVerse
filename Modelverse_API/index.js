@@ -11,6 +11,19 @@
     flags: "a",
   });
   // TODO: Swagger Setup
+
+  // API Documentation page route
+  app.get('/documentation', (req, res) => {
+    fs.readFile(path.join(__dirname, 'public', 'documentation.html'), 'utf8', (err, data) => {
+      if (err) {
+        console.error('Error reading the documentation.html file:', err);
+        return res.status(500).send('An error occurred');
+      }
+      const swaggerHtml = '<!-- Your Swagger UI HTML here -->';
+      const finalHtml = data.replace('<!-- Swagger UI Placeholder -->', swaggerHtml);
+      res.send(finalHtml);
+    });
+  });
   // TODO: Placeholders for DTO as JSON strings
   // TODO: Middleware-Chain: log, auth user, parse json, serve static, route app, handle err, listen req
   app.use(morgan("combined", { stream: accessLogStream }));
