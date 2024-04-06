@@ -1,9 +1,19 @@
 (() => {
-  // TODO: Import modules
-  // TODO: Assign functions
+  port = 8080;
+  // Import modules
+  const express = require("express"),
+    morgan = require("morgan"),
+    fs = require("fs"),
+    path = require("path");
+  // Assign functions
+  const app = express(),
+  accessLogStream = fs.createWriteStream(path.join(__dirname, "log.txt"),{
+    flags: "a",
+  });
   // TODO: Swagger Setup
   // TODO: Placeholders for DTO as JSON strings
   // TODO: Middleware-Chain: log, auth user, parse json, serve static, route app, handle err, listen req
+  app.use(morgan("combined", { stream: accessLogStream }));
   // TODO: Declaration: function(req, res, next) // Call/Invocation: app.use(function),
   // TODO: Routing and Handling:
   // TODO: READ   Get a list of all models
@@ -16,5 +26,12 @@
   // TODO: CREATE Add model to favorites (showing only a text that a model has been added)
   // TODO: DELETE Remove model from favorites (showing only a text that a model has been removed)
   // TODO: DELETE Deregister User (showing only a text that a user email has been removed)
-  // TODO: Express HTTP implementation: app.METHOD(PATH, HANDLER(responseLogic))
-})()
+  // Express HTTP implementation: app.METHOD(PATH, HANDLER(responseLogic))
+  app.get("/", (req, res)=> res.send("Welcome to Modelverse API :)") ); //root request
+  app.use(express.static("public")); // Automatically routes all requests for static files to their corresponding files
+  app.use((err, req, res, next)=>{
+    console.log(err.stack);
+    res.status(500).send("Something broke server-side..");
+  }); // Error-handling middleware as last app use 
+  app.listen(port, ()=> console.log(`This app awaits requests from port ${port}`));
+})();

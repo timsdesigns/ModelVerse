@@ -4,7 +4,9 @@
   "description": "A MERN backend for a 3d model database",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon server.js"
   },
   "repository": {
     "type": "git",
@@ -22,7 +24,10 @@
   },
   "homepage": "https://github.com/timsdesigns/movie_api#readme",
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "morgan": "^1.10.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
 }
