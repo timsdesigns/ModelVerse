@@ -115,7 +115,14 @@
     if (model) res.status(200).json(model);
     else res.status(400).send("No model with this category name found");
   });
-  // TODO: READ   Get data about a director by property (vertex count, materials, size)
+  // READ   Get data about a property by name (vertex count, materials, size)
+  app.get("/models/properties/:material", (req,res)=>{
+    const { material } = req.params;
+    const model = topModels.find(m=>m.Properties.Materials
+      .some(mat => mat.toLowerCase().includes(material.toLowerCase())));
+    if (model) res.status(200).json(model);
+    else res.status(400).send(`No model with material ${material} found.`); //Corian
+  });  
   // TODO: CREATE Register a new user
   // TODO: UPDATE Update user info (username)
   // TODO: CREATE Add model to favorites (showing only a text that a model has been added)
