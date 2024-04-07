@@ -5,7 +5,8 @@
     morgan = require("morgan"),
     fs = require("fs"),
     path = require("path"),
-    bodyParser = require("body-parser");
+    bodyParser = require("body-parser"),
+    uuid = require("uuid");
   // Assign functions
   const app = express(),
     accessLogStream = fs.createWriteStream(path.join(__dirname, "log.txt"), {
@@ -35,14 +36,14 @@
   // Placeholders for DTO as JSON strings
   let users = [
     {
-      id: 1,
-      name: "Kim",
-      favMovies: [],
+      Id: 1,
+      Name: "Kim",
+      FavModels: [],
     },
     {
-      id: 2,
-      name: "Joe",
-      favMovies: ["Apocalypse Now"],
+      Id: 2,
+      Name: "Joe",
+      FavModels: ["Ring"],
     },
   ];
   let topModels = [
@@ -51,7 +52,7 @@
       Description: "Jewelry",
       Category: {
         Name: "Product",
-        Description: "Wearable Art"
+        Description: "Wearable Art",
       },
       Properties: {
         VertexCount: 141009,
@@ -66,7 +67,7 @@
       Description: "Furniture",
       Category: {
         Name: "Product",
-        Description: "Performative Design"
+        Description: "Performative Design",
       },
       Properties: {
         VertexCount: 334908,
@@ -81,7 +82,7 @@
       Description: "Visualization",
       Category: {
         Name: "Tool",
-        Description: "Grasshopper Plugin"
+        Description: "Grasshopper Plugin",
       },
       Properties: {
         VertexCount: 34060,
@@ -104,27 +105,52 @@
   // (description, category, property, model URL, tags)
   app.get("/models/:title", (req, res) => {
     const { title } = req.params; //object restructuring syntax
-    const model = topModels.find(m=>m.Title === title); //get from array
+    const model = topModels.find((m) => m.Title === title); //get from array
     if (model) res.status(200).json(model);
     else res.status(400).send("No model with this name found.");
   });
   // READ   Get data about a category by name (description)
-  app.get("/models/category/:catName", (req, res)=>{
-    const {catName} = req.params;
-    const model = topModels.find(m=>m.Category.Name === catName);
+  app.get("/models/category/:catName", (req, res) => {
+    const { catName } = req.params;
+    const model = topModels.find((m) => m.Category.Name === catName);
     if (model) res.status(200).json(model);
     else res.status(400).send("No model with this category name found");
   });
   // READ   Get data about a property by name (vertex count, materials, size)
-  app.get("/models/properties/:material", (req,res)=>{
+  app.get("/models/properties/:material", (req, res) => {
     const { material } = req.params;
-    const model = topModels.find(m=>m.Properties.Materials
-      .some(mat => mat.toLowerCase().includes(material.toLowerCase())));
+    const model = topModels.find((m) =>
+      m.Properties.Materials.some((mat) =>
+        mat.toLowerCase().includes(material.toLowerCase())
+      )
+    );
     if (model) res.status(200).json(model);
     else res.status(400).send(`No model with material ${material} found.`); //Corian
-  });  
-  // TODO: CREATE Register a new user
-  // TODO: UPDATE Update user info (username)
+  });
+  // CREATE Register a new user
+  app.post("/users", (req, res) => {
+    const user = req.body;
+    if (!user.Name) res.status(404).send("A new user must at least have a name.");
+    else if (users.find((u) => u.name === user.Name))
+      res.status(402).send(`A user with the name ${user.Name} already exists.`);
+    else{
+      user.Id = uuid.v4();
+      users.push(user);
+      //res.send(`User created with id: ${user.Id}`);
+      res.status(201).json(user);
+    }
+  });
+  // UPDATE Update user info (username)
+  app.put("/users/:id", (req,res)=>{
+    const name = req.body.Name;
+    if(!name) res.status(400).send("Please provide a username in the request body.");
+    const {id} = req.params;
+    const user = users.find(u=>u.Id == id); //comp. num to string
+    if (user){
+      user.Name = name;
+      res.status(206).send(`User: "${id}" successfully renamed to: "${name}".`);
+    }else res.status(404).send("No user under this id found to modify.");
+  });
   // TODO: CREATE Add model to favorites (showing only a text that a model has been added)
   // TODO: DELETE Remove model from favorites (showing only a text that a model has been removed)
   // TODO: DELETE Deregister User (showing only a text that a user email has been removed)
