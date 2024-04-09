@@ -143,17 +143,47 @@
   // UPDATE Update user info (username)
   app.put("/users/:id", (req,res)=>{
     const name = req.body.Name;
-    if(!name) res.status(400).send("Please provide a username in the request body.");
+    if(!name) return res.status(400).send("Please provide a username in the request body.");
     const {id} = req.params;
     const user = users.find(u=>u.Id == id); //comp. num to string
-    if (user){
+    if (user) {
       user.Name = name;
       res.status(206).send(`User: "${id}" successfully renamed to: "${name}".`);
-    }else res.status(404).send("No user under this id found to modify.");
+    } else res.status(404).send("No user under this id found to modify.");
   });
-  // TODO: CREATE Add model to favorites (showing only a text that a model has been added)
-  // TODO: DELETE Remove model from favorites (showing only a text that a model has been removed)
-  // TODO: DELETE Deregister User (showing only a text that a user email has been removed)
+  // CREATE Add model to favorites (showing only a text that a model has been added)
+  app.post("/users/:userId", (req,res)=>{
+    const { userId } = req.params;
+    const user = users.find(U=>U.Id == userId);
+    if (!user) return res.status(404).send(`User with ID: ${userId} not found.`);    
+    const model = req.body;
+    if (!model.Title) return res.status(400).send("Model Name required.");
+    if (!model.ModelURL) return res.status(400).send("ModelURL required.");
+    if (model) {
+      model.Id = uuid.v4();
+      user.FavModels.push(model);
+      res.status(201).send(`Model: ${model.Title} with the ID: ${model.Id} was added successfully to ${user.Name}'s FavModels.`);
+    }
+  });
+  // DELETE Remove model from favorites (showing only a text that a model has been removed)
+  app.delete("/users/:userId/:modelId", (req, res)=>{
+    const { userId } = req.params;
+    const user = users.find(U=>U.Id == userId);
+    if (!user) return res.status(404).send(`User with ID: ${userId} not found.`);
+    const { modelId } = req.params;
+    const model = user.FavModels.find(m=>m.Id == modelId);
+    if (!model) return res.status(404).send(`User ${user.Name} has no model with Id: ${modelId} in FavModels.`);
+    user.FavModels = user.FavModels.filter(m=>m.Id !== modelId);
+    res.status(200).send(`Model: ${model.Title} successfully removed from ${user.Name}'s FavModels.`);
+  });
+  // DELETE Deregister User (showing only a text that a user email has been removed)
+  app.delete("users/:id",(req,res)=>{
+    const { id } = req.params;
+    const user = users.find(U=>U.Id == id);
+    if (!user) return res.status(404).send(`User with ID: ${id} not found.`);
+    users = users.filter(u=>u.Id !== id);
+    res.status("200").send(`User ${user.Name} removed successfully.`);
+  });
   // Express HTTP implementation: app.METHOD(PATH, HANDLER(responseLogic))
   app.get("/", (req, res) => res.send("Welcome to Modelverse API :)")); //root request
   app.use(express.static("public")); // Automatically routes all requests for static files to their corresponding files
