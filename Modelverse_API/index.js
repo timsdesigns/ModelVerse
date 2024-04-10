@@ -263,6 +263,17 @@
         );
     }
   });*/
+  app.post("/users/:name/movies/:movId", async (req,res)=>
+      await Users.findOneAndUpdate(
+        { Username: req.params.name },
+        { $push: { FavoriteMovies: req.params.movId } },
+        { new: true })
+      .then(updatedUser=>res.status(201).json(updatedUser)
+    ).catch(err=>{
+      console.log(err);
+      res.status(500).send("Error "+err);
+    })
+  ); // !Ensure using Mongoose-model-confirm user for testing!
 
   // DELETE Remove model from favorites (showing only a text that a model has been removed)
   app.delete("/users/:userId/:modelId", (req, res) => {
@@ -286,13 +297,28 @@
       );
   });
   // DELETE Deregister User (showing only a text that a user email has been removed)
-  app.delete("users/:id", (req, res) => {
+  /*app.delete("users/:id", (req, res) => {
     const { id } = req.params;
     const user = users.find((U) => U.Id == id);
     if (!user) return res.status(404).send(`User with ID: ${id} not found.`);
     users = users.filter((u) => u.Id !== id);
     res.status("200").send(`User ${user.Name} removed successfully.`);
-  });
+  });*/
+  app.delete("/users/:name", async (req,res)=>
+      await Users.findOneAndDelete(
+        {Username: req.params.name},
+        { includeResultMetadata: true}
+      )
+      .then(user=>{
+        if (!user.value) res.status(404).send(`User ${req.params.name} not found.`);
+        else res.status(200).send(`User ${req.params.name} has been deleted.`);
+      }
+    ).catch(err=>{
+      console.log(err);
+      res.status(500).send("Error "+err);
+    })
+  );
+
   // Express HTTP implementation: app.METHOD(PATH, HANDLER(responseLogic))
   app.get("/", (req, res) => res.send("Welcome to Modelverse API :)")); //root request
   app.use(express.static("public")); // Automatically routes all requests for static files to their corresponding files
