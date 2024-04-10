@@ -1,13 +1,23 @@
 (() => {
-  port = 8080;
+  // A REST API
+  port = 8081;
   // Import modules
-  const express = require("express"),
+  const mongoose = require("mongoose"),
+    DBModels = require("./dbModels.js"),
+    express = require("express"),
     morgan = require("morgan"),
     fs = require("fs"),
     path = require("path"),
     bodyParser = require("body-parser"),
     uuid = require("uuid");
   // Assign functions
+  const Models = DBModels.Model;
+  const Users = DBModels.User;
+  mongoose.connect("mongodb://localhost:27017/modelVerseDB", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
   const app = express(),
     accessLogStream = fs.createWriteStream(path.join(__dirname, "log.txt"), {
       flags: "a",
@@ -127,61 +137,160 @@
     if (model) res.status(200).json(model);
     else res.status(400).send(`No model with material ${material} found.`); //Corian
   });
+
+  // READ   Get all users
+  app.get("/users", async (_,res)=>{
+    await Users.find()
+    .then(users=>res.status(201).json(users))
+    .catch(err=>{
+      console.log(err);
+      res.status(500).send("Error: "+err);
+    })
+  });
+
+  // READ   Get user by name (Case Sensitive)
+  app.get("/users/:Username", async (req,res)=>
+    await Users.findOne({ Username: req.params.Username })
+    .then(user=>res.status(200).json(user))
+    .catch(err=>{
+      console.log(err);
+      res.status(500).send("Error: "+err);
+    })
+  );
+
   // CREATE Register a new user
-  app.post("/users", (req, res) => {
+  /*app.post("/users", (req, res) => {
     const user = req.body;
-    if (!user.Name) res.status(404).send("A new user must at least have a name.");
+    if (!user.Name)
+      res.status(404).send("A new user must at least have a name.");
     else if (users.find((u) => u.name === user.Name))
       res.status(402).send(`A user with the name ${user.Name} already exists.`);
-    else{
+    else {
       user.Id = uuid.v4();
       users.push(user);
       //res.send(`User created with id: ${user.Id}`);
       res.status(201).json(user);
     }
-  });
+  });*/
+  //Add a user
+  /* We’ll expect JSON in this format
+  {
+    ID: Integer,
+    Username: String,
+    Password: String,
+    Email: String,
+    Birthday: Date
+  }*/
+  app.post("/users", async (req,res)=>
+    await Users.findOne({Username: req.body.Username})
+    .then(user=>{
+      const b = req.body;
+      if (user) return res.status(400).send(req.body.Username + " already exists.");
+      else {
+        Users.create({
+          Username: b.Username,
+          Password: b.Password,
+          Email: b.Email,
+          Birthday: b.Birthday
+        })
+        .then(newUser=>res.status(201).json(newUser))
+        .catch(err=>{
+          console.log(err);
+          res.status(500).send("Error: "+err);
+        })
+      }
+    })
+    .catch(err=>{
+      console.log(err);
+      res.status(500).send("Error: "+err);
+    })
+  );
   // UPDATE Update user info (username)
-  app.put("/users/:id", (req,res)=>{
+  /*app.put("/users/:id", (req, res) => {
     const name = req.body.Name;
-    if(!name) return res.status(400).send("Please provide a username in the request body.");
-    const {id} = req.params;
-    const user = users.find(u=>u.Id == id); //comp. num to string
+    if (!name)
+      return res
+        .status(400)
+        .send("Please provide a username in the request body.");
+    const { id } = req.params;
+    const user = users.find((u) => u.Id == id); //comp. num to string
     if (user) {
       user.Name = name;
       res.status(206).send(`User: "${id}" successfully renamed to: "${name}".`);
     } else res.status(404).send("No user under this id found to modify.");
+  });  */
+  // Update a user's info, by username
+  /* We’ll expect JSON in this format
+  {
+    Username: String,
+    (required)
+    Password: String,
+    (required)
+    Email: String,
+    (required)
+    Birthday: Date
+  }*/
+  app.put("/users/:name", async (req,res)=>{
+    const b = req.body;
+    await Users.findOneAndUpdate({Username: req.params.name },{$set:{
+      Username: b.Username,
+      Password: b.Password,
+      Email: b.Email,
+      Birthday: b.Birthday
+    }}, { new: true })
+    .then(updatedUser=> res.status(201).json(updatedUser))
+    .catch(err=>{
+      console.log(err);
+      res.status(500).send("Error: "+err);
+    })
   });
   // CREATE Add model to favorites (showing only a text that a model has been added)
-  app.post("/users/:userId", (req,res)=>{
+  /*app.post("/users/:userId", (req, res) => {
     const { userId } = req.params;
-    const user = users.find(U=>U.Id == userId);
-    if (!user) return res.status(404).send(`User with ID: ${userId} not found.`);    
+    const user = users.find((U) => U.Id == userId);
+    if (!user)
+      return res.status(404).send(`User with ID: ${userId} not found.`);
     const model = req.body;
     if (!model.Title) return res.status(400).send("Model Name required.");
     if (!model.ModelURL) return res.status(400).send("ModelURL required.");
     if (model) {
       model.Id = uuid.v4();
       user.FavModels.push(model);
-      res.status(201).send(`Model: ${model.Title} with the ID: ${model.Id} was added successfully to ${user.Name}'s FavModels.`);
+      res
+        .status(201)
+        .send(
+          `Model: ${model.Title} with the ID: ${model.Id} was added successfully to ${user.Name}'s FavModels.`
+        );
     }
-  });
+  });*/
+
   // DELETE Remove model from favorites (showing only a text that a model has been removed)
-  app.delete("/users/:userId/:modelId", (req, res)=>{
+  app.delete("/users/:userId/:modelId", (req, res) => {
     const { userId } = req.params;
-    const user = users.find(U=>U.Id == userId);
-    if (!user) return res.status(404).send(`User with ID: ${userId} not found.`);
+    const user = users.find((U) => U.Id == userId);
+    if (!user)
+      return res.status(404).send(`User with ID: ${userId} not found.`);
     const { modelId } = req.params;
-    const model = user.FavModels.find(m=>m.Id == modelId);
-    if (!model) return res.status(404).send(`User ${user.Name} has no model with Id: ${modelId} in FavModels.`);
-    user.FavModels = user.FavModels.filter(m=>m.Id !== modelId);
-    res.status(200).send(`Model: ${model.Title} successfully removed from ${user.Name}'s FavModels.`);
+    const model = user.FavModels.find((m) => m.Id == modelId);
+    if (!model)
+      return res
+        .status(404)
+        .send(
+          `User ${user.Name} has no model with Id: ${modelId} in FavModels.`
+        );
+    user.FavModels = user.FavModels.filter((m) => m.Id !== modelId);
+    res
+      .status(200)
+      .send(
+        `Model: ${model.Title} successfully removed from ${user.Name}'s FavModels.`
+      );
   });
   // DELETE Deregister User (showing only a text that a user email has been removed)
-  app.delete("users/:id",(req,res)=>{
+  app.delete("users/:id", (req, res) => {
     const { id } = req.params;
-    const user = users.find(U=>U.Id == id);
+    const user = users.find((U) => U.Id == id);
     if (!user) return res.status(404).send(`User with ID: ${id} not found.`);
-    users = users.filter(u=>u.Id !== id);
+    users = users.filter((u) => u.Id !== id);
     res.status("200").send(`User ${user.Name} removed successfully.`);
   });
   // Express HTTP implementation: app.METHOD(PATH, HANDLER(responseLogic))
